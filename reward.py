@@ -150,6 +150,7 @@ def runGame(tour):
                     else:
                         dessine_point(tab_point)
                     cv2.rectangle(frame, (0, 0), (int(width), 30), (100, 100, 100), cv2.FILLED)
+                    # cv2.putText(mask, "x: {:d}  y: {:d}".format(lo, hi))
                     cv2.putText(frame, "Mode[m]: {:d}   Degrade[p]: {:d}".format(mode, degrade), (10, 20),
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 255, 255), 2)
@@ -166,6 +167,7 @@ def runGame(tour):
                     #         lastDistance, newDistance = (tab_point[nbr_point - i - 1, 0], tab_point[nbr_point - i - 1, 1])
 
             cv2.imshow('Camera', frame)
+            cv2.imshow('HICHEM', image2)
             cv2.imshow('Mask', mask)
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
