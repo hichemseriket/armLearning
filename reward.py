@@ -91,6 +91,33 @@ def runGame(tour):
         nbr_point = 100
         tab_point = np.full((nbr_point, 2), -1, dtype=np.int32)
         lastDistance = 100000000
+        mode = 1
+        degrade = 1
+
+        def dessine_point(tab_point):
+            for i in range(len(tab_point)):
+                if tab_point[nbr_point - i - 1, 0] != -1:
+                    if degrade:
+                        couleur = (0, 255 - 2 * (nbr_point - i - 1), 0)
+                    else:
+                        couleur = (0, 255, 0)
+                    cv2.circle(frame, (tab_point[nbr_point - i - 1, 0], tab_point[nbr_point - i - 1, 1]), 5, couleur,
+                               10)
+
+        def dessine_ligne(tab_point):
+            lastDistance, newDistance = (-1, -1)
+            for i in range(nbr_point):
+                if tab_point[nbr_point - i - 1, 0] != -1:
+                    if lastDistance != -1:
+                        if degrade:
+                            couleur = (0, 255 - 2 * (nbr_point - i - 1), 0)
+                        else:
+                            couleur = (0, 255, 0)
+                        cv2.line(frame, (lastDistance, newDistance),
+                                 (tab_point[nbr_point - i - 1, 0], tab_point[nbr_point - i - 1, 1]),
+                                 couleur, 10)
+                lastDistance, newDistance = (tab_point[nbr_point - i - 1, 0], tab_point[nbr_point - i - 1, 1])
+
         while True:
             ret, frame = cap.read()
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -118,21 +145,37 @@ def runGame(tour):
                     else:
                         sendToCode('=')
                         break
-                    lastDistance = newDistance
-                    cv2.circle(frame, (int(x), int(y)), 5, color_info, 10)
-                    lastDistance, newDistance = (-1, -1)
-                    for i in range(nbr_point):
-                        if tab_point[nbr_point - i - 1, 0] != -1:
-                            if lastDistance != -1:
-                                cv2.line(frame, (lastDistance, newDistance),
-                                         (tab_point[nbr_point - i - 1, 0], tab_point[nbr_point - i - 1, 1]),
-                                         (0, 255 - 2 * (nbr_point - i - 1), 0), 10)
-                                # cv2.line(frame, (old_x, old_y), (tab_point[nbr_point-i-1, 0], tab_point[nbr_point-i-1, 1]), (0, 255, 0), 10)
-                            lastDistance, newDistance = (tab_point[nbr_point - i - 1, 0], tab_point[nbr_point - i - 1, 1])
+                    if mode:
+                        dessine_ligne(tab_point)
+                    else:
+                        dessine_point(tab_point)
+                    cv2.rectangle(frame, (0, 0), (int(width), 30), (100, 100, 100), cv2.FILLED)
+                    cv2.putText(frame, "Mode[m]: {:d}   Degrade[p]: {:d}".format(mode, degrade), (10, 20),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 2)
+                    # lastDistance = newDistance
+                    # cv2.circle(frame, (int(x), int(y)), 5, color_info, 10)
+                    # lastDistance, newDistance = (-1, -1)
+                    # for i in range(nbr_point):
+                    #     if tab_point[nbr_point - i - 1, 0] != -1:
+                    #         if lastDistance != -1:
+                    #             cv2.line(frame, (lastDistance, newDistance),
+                    #                      (tab_point[nbr_point - i - 1, 0], tab_point[nbr_point - i - 1, 1]),
+                    #                      (0, 255 - 2 * (nbr_point - i - 1), 0), 10)
+                    #             # cv2.line(frame, (old_x, old_y), (tab_point[nbr_point-i-1, 0], tab_point[nbr_point-i-1, 1]), (0, 255, 0), 10)
+                    #         lastDistance, newDistance = (tab_point[nbr_point - i - 1, 0], tab_point[nbr_point - i - 1, 1])
 
             cv2.imshow('Camera', frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            cv2.imshow('Mask', mask)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
                 break
+            if key == ord('m'):
+                mode = not mode
+            if key == ord('p'):
+                degrade = not degrade
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+            #     break
         runGame(tour + 1)
 
 
