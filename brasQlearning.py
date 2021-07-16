@@ -175,7 +175,6 @@ def runGame(tour):
             #     break
         runGame(tour + 1)
 
-
 runGame(tour)
 cap.release()
 cv2.destroyAllWindows()

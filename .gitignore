@@ -7,7 +7,7 @@ __pycache__/
 .vscode
 # C extensions
 *.so
-
+ssd_mobilenet_v2_coco_2018_03_29
 # Distribution / packaging
 .Python
 build/
