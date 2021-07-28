@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 import datetime
 import random
+from random import randint
 
-color_infos=(0, 0, 255)
 
 def souris(event, x, y, flags, param):
     global lo, hi, color
@@ -85,40 +85,11 @@ tour = 0
 
 
 def runGame(tour):
-    if (tour < 3):
+    if tour < 3:
         xa = random.randint(0, width)
         ya = random.randint(0, height)
         print(lo, hi, 'high low')
-        nbr_point = 100
-        tab_point = np.full((nbr_point, 2), -1, dtype=np.int32)
         lastDistance = 100000000
-        mode = 1
-        degrade = 1
-
-        def dessine_point(tab_point):
-            for i in range(len(tab_point)):
-                if tab_point[nbr_point - i - 1, 0] != -1:
-                    if degrade:
-                        couleur = (0, 255 - 2 * (nbr_point - i - 1), 0)
-                    else:
-                        couleur = (0, 255, 0)
-                    cv2.circle(frame, (tab_point[nbr_point - i - 1, 0], tab_point[nbr_point - i - 1, 1]), 5, couleur,
-                               10)
-
-        def dessine_ligne(tab_point):
-            lastDistance, newDistance = (-1, -1)
-            for i in range(nbr_point):
-                if tab_point[nbr_point - i - 1, 0] != -1:
-                    if lastDistance != -1:
-                        if degrade:
-                            couleur = (0, 255 - 2 * (nbr_point - i - 1), 0)
-                        else:
-                            couleur = (0, 255, 0)
-                        cv2.line(frame, (lastDistance, newDistance),
-                                 (tab_point[nbr_point - i - 1, 0], tab_point[nbr_point - i - 1, 1]),
-                                 couleur, 10)
-                lastDistance, newDistance = (tab_point[nbr_point - i - 1, 0], tab_point[nbr_point - i - 1, 1])
-
         while True:
             ret, frame = cap.read()
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -129,51 +100,140 @@ def runGame(tour):
             frame = cv2.circle(frame, (xa, ya), radius=5, color=(0, 0, 255), thickness=-1)
             image2 = cv2.bitwise_and(frame, frame, mask=mask)
             elements = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            tab_point = np.roll(tab_point, 1, axis=0)
-            tab_point[0] = [-1, -1]
             if len(elements) > 0:
                 c = max(elements, key=cv2.contourArea)
                 ((x, y), radius) = cv2.minEnclosingCircle(c)
-
                 if radius > 30:
-                    print(x, y, 'x, y')
-                    cv2.line(frame, (int(x), int(y)), (int(x) + 150, int(y)), color_infos, 2)
-
-                    cv2.putText(frame, "Objet !!!", (int(x) + 10, int(y) - 10), cv2.FONT_HERSHEY_DUPLEX, 1, color_infos,
-                                1, cv2.LINE_AA)
-
+                    # print(x, y, 'x, y')
                     newDistance = ((((x - xa) ** 2) + ((y - ya) ** 2)) ** 0.5)
                     if int(newDistance) >= 10:
-                        tab_point[0] = [int(x), int(y)]
-                        if (lastDistance > newDistance):
+                        if lastDistance > newDistance:
                             sendToCode('+')
                         else:
                             sendToCode('-')
                     else:
                         sendToCode('=')
                         break
-                    if mode:
-                        dessine_ligne(tab_point)
-                    else:
-                        dessine_point(tab_point)
-                    cv2.rectangle(frame, (0, 0), (int(width), 30), (100, 100, 100), cv2.FILLED)
-                    # cv2.putText(mask, "x: {:d}  y: {:d}".format(lo, hi))
-                    cv2.putText(frame, "Mode[m]: {:d}   Degrade[p]: {:d}".format(mode, degrade), (10, 20),
-                                cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 2)
-
+                    lastDistance = newDistance
+                    cv2.circle(frame, (int(x), int(y)), 5, color_info, 10)
             cv2.imshow('Camera', frame)
-            cv2.imshow('HICHEM', image2)
-            cv2.imshow('Mask', mask)
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-            if key == ord('m'):
-                mode = not mode
-            if key == ord('p'):
-                degrade = not degrade
-            # if cv2.waitKey(1) & 0xFF == ord('q'):
-            #     break
+            cv2.imshow('chonchi', image2)
+
         runGame(tour + 1)
+        class EnvGrid(object):
+
+            def __init__(self):
+                super(EnvGrid, self).__init__()
+
+        # l'environnement n'est pas une grille mais bon on peut dire que notre camera est une grille,
+        # et que a chaque mouvement l'environnement change et devient une nouvelle grille
+                a = lastDistance < newDistance
+                b = lastDistance > newDistance
+                self.grid = [
+                    # [0, 0, 1],
+                    # [0, -1, 0],
+                    # [0, 0, 0]
+                    # int(x),
+                    # int(y)
+                    a,
+                    b
+                ]
+                # Starting position
+                self.y = int(y)
+                self.x = int(x)
+
+        # les actions je vais quand meme mettre uniquement les deux : s'approcher, s'eloigner
+                self.actions = [
+                    [-1, 0], # Up
+                    [1, 0], #Downq
+                    [0, -1], # Left
+                    [0, 1] # Right
+                    # lastDistance.x,
+                    # newDistance
+                ]
+
+            def reset(self):
+                """
+                    Reset world
+                """
+                self.y = int(y)
+                self.x = int(x)
+                return (self.y*3+self.x+1)
+
+            def step(self, action):
+                """
+                    Action: 0, 1, 2, 3
+                """
+                self.y = max(0, min(self.y + self.actions[action][0],2))
+                self.x = max(0, min(self.x + self.actions[action][1],2))
+
+                return (self.y*3+self.x+1) , self.grid[self.y][self.x]
+
+            def show(self):
+                """
+                    Show the grid
+                """
+                print("---------------------")
+                y = 0
+                for line in self.grid:
+                    x = 0
+                    for pt in line:
+                        print("%s\t" % (pt if y != self.y or x != self.x else "X"), end="")
+                        x += 1
+                    y += 1
+                    print("")
+
+            def is_finished(self):
+                return self.grid[self.y][self.x] == 1000000
+
+        def take_action(st, Q, eps):
+            # Take an action
+            if random.uniform(0, 1) < eps:
+                action = randint(0, 3)
+            else: # Or greedy action
+                action = np.argmax(Q[st])
+            return action
+
+        if __name__ == '__main__':
+            env = EnvGrid()
+            st = env.reset()
+
+            Q = [
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0]
+            ]
+
+            for _ in range(100):
+                # Reset the game
+                st = env.reset()
+                while not env.is_finished():
+                    #env.show()
+                    #at = int(input("$>"))
+                    at = take_action(st, Q, 0.4)
+
+                    stp1, r = env.step(at)
+                    print("s", stp1)
+                    print("r", r)
+
+                    # Update Q function
+                    atp1 = take_action(stp1, Q, 0.0)
+                    Q[st][at] = Q[st][at] + 0.1*(r + 0.9*Q[stp1][atp1] - Q[st][at])
+
+                    st = stp1
+
+            for s in range(1, 10):
+                print(s, Q[s])
+
 
 
 runGame(tour)
