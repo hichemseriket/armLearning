@@ -100,6 +100,83 @@ def runGame(tour):
             frame = cv2.circle(frame, (xa, ya), radius=5, color=(0, 0, 255), thickness=-1)
             image2 = cv2.bitwise_and(frame, frame, mask=mask)
             elements = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+
+            class EnvGrid(object):
+
+                # mes recompenseviennet de la camera du coup le mieux est que : je transform le retour du code reward en recompense + if newDist < lastDistance et vis versa
+                # comme les variable a, b que j'ai créé en vrai, donc le sendtocode doit etre une valeur
+                def __init__(self):
+                    super(EnvGrid, self).__init__()
+
+                    # l'environnement n'est pas une grille mais bon on peut dire que notre camera est une grille,
+                    # et que a chaque mouvement l'environnement change et devient une nouvelle grille
+                    a = lastDistance < newDistance
+                    b = lastDistance > newDistance
+                    self.grid = [
+                        # [0, 0, 1],
+                        # [0, -1, 0],
+                        # [0, 0, 0]
+                        # int(x),
+                        # int(y)
+                        a,
+                        b
+                    ]
+                    # Starting position
+                    self.y = int(y)
+                    self.x = int(x)
+
+                    # les actions je vais quand meme mettre uniquement les deux : s'approcher, s'eloigner, je laisse les action comme si cetait une grille pour voir
+                    self.actions = [
+                        [-1, 0],  # Up
+                        [1, 0],  # Downq
+                        [0, -1],  # Left
+                        [0, 1]  # Right
+                        # lastDistance.x,
+                        # newDistance
+                    ]
+
+                def reset(self):
+                    """
+                        Reset world
+                    """
+                    self.y = int(y)
+                    self.x = int(x)
+                    return (self.y * 3 + self.x + 1)
+
+                def step(self, action):
+                    """
+                        Action: 0, 1, 2, 3
+                    """
+                    self.y = max(0, min(self.y + self.actions[action][0], 2))
+                    self.x = max(0, min(self.x + self.actions[action][1], 2))
+
+                    return (self.y * 3 + self.x + 1), self.grid[self.y][self.x]
+
+                def show(self):
+                    """
+                        Show the grid
+                    """
+                    print("---------------------")
+                    y = 0
+                    for line in self.grid:
+                        x = 0
+                        for pt in line:
+                            print("%s\t" % (pt if y != self.y or x != self.x else "X"), end="")
+                            x += 1
+                        y += 1
+                        print("")
+
+                def is_finished(self):
+                    return self.grid[self.y][self.x] == 1
+
+            def take_action(st, Q, eps):
+                # Take an action
+                if random.uniform(0, 1) < eps:
+                    action = randint(0, 3)
+                else:  # Or greedy action
+                    action = np.argmax(Q[st])
+                return action
+
             if len(elements) > 0:
                 c = max(elements, key=cv2.contourArea)
                 ((x, y), radius) = cv2.minEnclosingCircle(c)
@@ -122,117 +199,7 @@ def runGame(tour):
             cv2.imshow('chonchi', image2)
 
         runGame(tour + 1)
-        class EnvGrid(object):
 
-            def __init__(self):
-                super(EnvGrid, self).__init__()
-
-        # l'environnement n'est pas une grille mais bon on peut dire que notre camera est une grille,
-        # et que a chaque mouvement l'environnement change et devient une nouvelle grille
-                a = lastDistance < newDistance
-                b = lastDistance > newDistance
-                self.grid = [
-                    # [0, 0, 1],
-                    # [0, -1, 0],
-                    # [0, 0, 0]
-                    # int(x),
-                    # int(y)
-                    a,
-                    b
-                ]
-                # Starting position
-                self.y = int(y)
-                self.x = int(x)
-
-        # les actions je vais quand meme mettre uniquement les deux : s'approcher, s'eloigner
-                self.actions = [
-                    [-1, 0], # Up
-                    [1, 0], #Downq
-                    [0, -1], # Left
-                    [0, 1] # Right
-                    # lastDistance.x,
-                    # newDistance
-                ]
-
-            def reset(self):
-                """
-                    Reset world
-                """
-                self.y = int(y)
-                self.x = int(x)
-                return (self.y*3+self.x+1)
-
-            def step(self, action):
-                """
-                    Action: 0, 1, 2, 3
-                """
-                self.y = max(0, min(self.y + self.actions[action][0],2))
-                self.x = max(0, min(self.x + self.actions[action][1],2))
-
-                return (self.y*3+self.x+1) , self.grid[self.y][self.x]
-
-            def show(self):
-                """
-                    Show the grid
-                """
-                print("---------------------")
-                y = 0
-                for line in self.grid:
-                    x = 0
-                    for pt in line:
-                        print("%s\t" % (pt if y != self.y or x != self.x else "X"), end="")
-                        x += 1
-                    y += 1
-                    print("")
-
-            def is_finished(self):
-                return self.grid[self.y][self.x] == 1000000
-
-        def take_action(st, Q, eps):
-            # Take an action
-            if random.uniform(0, 1) < eps:
-                action = randint(0, 3)
-            else: # Or greedy action
-                action = np.argmax(Q[st])
-            return action
-
-        if __name__ == '__main__':
-            env = EnvGrid()
-            st = env.reset()
-
-            Q = [
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0]
-            ]
-
-            for _ in range(100):
-                # Reset the game
-                st = env.reset()
-                while not env.is_finished():
-                    #env.show()
-                    #at = int(input("$>"))
-                    at = take_action(st, Q, 0.4)
-
-                    stp1, r = env.step(at)
-                    print("s", stp1)
-                    print("r", r)
-
-                    # Update Q function
-                    atp1 = take_action(stp1, Q, 0.0)
-                    Q[st][at] = Q[st][at] + 0.1*(r + 0.9*Q[stp1][atp1] - Q[st][at])
-
-                    st = stp1
-
-            for s in range(1, 10):
-                print(s, Q[s])
 
 
 
