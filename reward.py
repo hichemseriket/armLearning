@@ -140,8 +140,11 @@ def runGame(tour):
                     # l'environnement n'est pas une grille mais bon on peut dire que notre camera est une grille,
                     # et que a chaque mouvement l'environnement change et devient une nouvelle grille
 
-# je doit trouver un moyen de representer le monde de la camera sans devori faire une grille
+                    # je doit trouver un moyen de representer le monde de la camera sans devori faire une grille
                     # en attendant je mets comme env a et b mais cela n'est pas bon
+                    # le reward positif doit etre dynamique et doit correspondre a la nouvelle position atteinte
+                    # le reward negative doit etre a chaque fois que cela s'eloigne'
+                    # sinon pour le reste c'est zero
                     self.grid = [
                         a,
                         b
