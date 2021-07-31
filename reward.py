@@ -85,6 +85,7 @@ tour = 0
 
 
 def runGame(tour):
+    # global newDistance
     if tour < 3:
         xa = random.randint(0, width)
         ya = random.randint(0, height)
@@ -101,6 +102,34 @@ def runGame(tour):
             image2 = cv2.bitwise_and(frame, frame, mask=mask)
             elements = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
 
+
+
+            if len(elements) > 0:
+                c = max(elements, key=cv2.contourArea)
+                ((x, y), radius) = cv2.minEnclosingCircle(c)
+                if radius > 30:
+                    # print(x, y, 'x, y')
+                    newDistance = ((((x - xa) ** 2) + ((y - ya) ** 2)) ** 0.5)
+                    print(lastDistance)
+                    print("deplacement")
+                    print(newDistance)
+                    if int(newDistance) >= 10:
+                        if lastDistance > newDistance:
+                            sendToCode('+')
+                        else:
+                            sendToCode('-')
+                    else:
+                        sendToCode('=')
+                        break
+                    lastDistance = newDistance
+                    cv2.circle(frame, (int(x), int(y)), 5, color_info, 10)
+            cv2.imshow('Camera', frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+            # cv2.imshow('chonchi', image2)
+
+            a = lastDistance < newDistance
+            b = lastDistance > newDistance
             class EnvGrid(object):
 
                 # mes recompenseviennet de la camera du coup le mieux est que : je transform le retour du code reward en recompense + if newDist < lastDistance et vis versa
@@ -110,14 +139,10 @@ def runGame(tour):
 
                     # l'environnement n'est pas une grille mais bon on peut dire que notre camera est une grille,
                     # et que a chaque mouvement l'environnement change et devient une nouvelle grille
-                    a = lastDistance < newDistance
-                    b = lastDistance > newDistance
+
+# je doit trouver un moyen de representer le monde de la camera sans devori faire une grille
+                    # en attendant je mets comme env a et b mais cela n'est pas bon
                     self.grid = [
-                        # [0, 0, 1],
-                        # [0, -1, 0],
-                        # [0, 0, 0]
-                        # int(x),
-                        # int(y)
                         a,
                         b
                     ]
@@ -127,12 +152,8 @@ def runGame(tour):
 
                     # les actions je vais quand meme mettre uniquement les deux : s'approcher, s'eloigner, je laisse les action comme si cetait une grille pour voir
                     self.actions = [
-                        [-1, 0],  # Up
-                        [1, 0],  # Downq
-                        [0, -1],  # Left
-                        [0, 1]  # Right
-                        # lastDistance.x,
-                        # newDistance
+                        a,
+                        b
                     ]
 
                 def reset(self):
@@ -149,8 +170,8 @@ def runGame(tour):
                     """
                     self.y = max(0, min(self.y + self.actions[action][0], 2))
                     self.x = max(0, min(self.x + self.actions[action][1], 2))
-
-                    return (self.y * 3 + self.x + 1), self.grid[self.y][self.x]
+                    print(self.y, self.x, 'y , x')
+                    return (self.y * 2 + self.x + 1), self.grid[self.y][self.x]
 
                 def show(self):
                     """
@@ -172,35 +193,51 @@ def runGame(tour):
             def take_action(st, Q, eps):
                 # Take an action
                 if random.uniform(0, 1) < eps:
-                    action = randint(0, 3)
+                    # action = randint(0, 3)
+                    action = randint(0, 1)
+                    print(action)
                 else:  # Or greedy action
                     action = np.argmax(Q[st])
+                    print("argMax",action)
                 return action
 
-            if len(elements) > 0:
-                c = max(elements, key=cv2.contourArea)
-                ((x, y), radius) = cv2.minEnclosingCircle(c)
-                if radius > 30:
-                    # print(x, y, 'x, y')
-                    newDistance = ((((x - xa) ** 2) + ((y - ya) ** 2)) ** 0.5)
-                    if int(newDistance) >= 10:
-                        if lastDistance > newDistance:
-                            sendToCode('+')
-                        else:
-                            sendToCode('-')
-                    else:
-                        sendToCode('=')
-                        break
-                    lastDistance = newDistance
-                    cv2.circle(frame, (int(x), int(y)), 5, color_info, 10)
-            cv2.imshow('Camera', frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-            cv2.imshow('chonchi', image2)
+            env = EnvGrid()
+            st = env.reset()
+
+            Q = [
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0]
+            ]
+
+            for _ in range(3):
+                # Reset the game
+                st = env.reset()
+                while not env.is_finished():
+                    # env.show()
+                    # at = int(input("$>"))
+                    at = take_action(st, Q, 0.4)
+
+                    stp1, r = env.step(at)
+                    # print("s", stp1)
+                    # print("r", r)
+                    # Update Q function
+                    atp1 = take_action(stp1, Q, 0.0)
+                    Q[st][at] = Q[st][at] + 0.1 * (r + 0.9 * Q[stp1][atp1] - Q[st][at])
+
+                    st = stp1
+
+            for s in range(1, 10):
+                print(s, Q[s])
 
         runGame(tour + 1)
-
-
 
 
 runGame(tour)

@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 
 import sys
-import numpy
+import numpy as np
 import gym
 import time
 from optparse import OptionParser
@@ -88,6 +88,11 @@ def main():
             print('done!')
             resetEnv()
 
+        def rolling_window(a, window):
+            shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+            strides = a.strides + (a.strides[-1],)
+            x = np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+            return x
     renderer.window.setKeyDownCb(keyDownCb)
 
     while True:
@@ -97,6 +102,10 @@ def main():
         # If the window was closed
         if renderer.window == None:
             break
-
+# je rajoute ca pour corriger le bug ndarray has no window
+def rolling_window(a, window):
+    shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+    strides = a.strides + (a.strides[-1],)
+    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
 if __name__ == "__main__":
     main()
