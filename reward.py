@@ -85,7 +85,7 @@ tour = 0
 
 
 def runGame(tour):
-    # global newDistance
+    global newDistance
     if tour < 3:
         xa = random.randint(0, width)
         ya = random.randint(0, height)
@@ -101,8 +101,6 @@ def runGame(tour):
             frame = cv2.circle(frame, (xa, ya), radius=5, color=(0, 0, 255), thickness=-1)
             image2 = cv2.bitwise_and(frame, frame, mask=mask)
             elements = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-
-
 
             if len(elements) > 0:
                 c = max(elements, key=cv2.contourArea)
@@ -130,6 +128,9 @@ def runGame(tour):
 
             a = lastDistance < newDistance
             b = lastDistance > newDistance
+            a = 1
+            b = -1
+
             class EnvGrid(object):
 
                 # mes recompenseviennet de la camera du coup le mieux est que : je transform le retour du code reward en recompense + if newDist < lastDistance et vis versa
@@ -146,17 +147,24 @@ def runGame(tour):
                     # le reward negative doit etre a chaque fois que cela s'eloigne'
                     # sinon pour le reste c'est zero
                     self.grid = [
-                        a,
-                        b
+                        [0, 0, a],
+                        [0, b, 0],
+                        [0, 0, 0]
                     ]
                     # Starting position
                     self.y = int(y)
                     self.x = int(x)
 
                     # les actions je vais quand meme mettre uniquement les deux : s'approcher, s'eloigner, je laisse les action comme si cetait une grille pour voir
+                    # self.actions = [
+                    #     a,
+                    #     b
+                    # ]
                     self.actions = [
-                        a,
-                        b
+                        [-1, 0],  # Up
+                        [1, 0],  # Down
+                        [0, -1],  # Left
+                        [0, 1]  # Right
                     ]
 
                 def reset(self):
@@ -169,12 +177,12 @@ def runGame(tour):
 
                 def step(self, action):
                     """
-                        Action: 0, 1, 2, 3
+                        Action: 0, 1
                     """
                     self.y = max(0, min(self.y + self.actions[action][0], 2))
                     self.x = max(0, min(self.x + self.actions[action][1], 2))
                     print(self.y, self.x, 'y , x')
-                    return (self.y * 2 + self.x + 1), self.grid[self.y][self.x]
+                    return (self.y * 3 + self.x + 1), self.grid[self.y][self.x]
 
                 def show(self):
                     """
@@ -191,7 +199,7 @@ def runGame(tour):
                         print("")
 
                 def is_finished(self):
-                    return self.grid[self.y][self.x] == 1
+                    return self.grid[self.y][self.x] == a
 
             def take_action(st, Q, eps):
                 # Take an action
@@ -201,7 +209,7 @@ def runGame(tour):
                     print(action)
                 else:  # Or greedy action
                     action = np.argmax(Q[st])
-                    print("argMax",action)
+                    print("argMax", action)
                 return action
 
             env = EnvGrid()
@@ -220,7 +228,7 @@ def runGame(tour):
                 [0, 0, 0, 0]
             ]
 
-            for _ in range(3):
+            for _ in range(100):
                 # Reset the game
                 st = env.reset()
                 while not env.is_finished():
